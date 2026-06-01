@@ -1,176 +1,182 @@
 ﻿#include <iostream>
-#include <fstream>
+#include <cstring>
 #include <cstdlib>
 #include <ctime>
-#include <cstring>
 
-// Підключаємо заголовок для роботи з кодуванням Windows консолі
-#ifdef _WIN32
-#include <windows.h>
-#endif
+using namespace std;
 
-// ============================================================================
-// КОРИСТУВАЦЬКИЙ ТИП ДАНИХ (Аналог TLong з методичних вказівок)
-// ============================================================================
-class TLong {
-    long long hi, lo;
+// ==========================================
+// ЗАВДАННЯ 1: Пошук мінімуму в масиві
+// ==========================================
+template <typename T>
+T findMin(T arr[], int size) {
+    T minVal = arr[0];
+    for (int i = 1; i < size; ++i) {
+        if (arr[i] < minVal) {
+            minVal = arr[i];
+        }
+    }
+    return minVal;
+}
+
+// Специфікація для char* (порівняння рядків лексикографічно)
+template <>
+char* findMin<char*>(char* arr[], int size) {
+    char* minVal = arr[0];
+    for (int i = 1; i < size; ++i) {
+        if (strcmp(arr[i], minVal) < 0) {
+            minVal = arr[i];
+        }
+    }
+    return minVal;
+}
+
+// ==========================================
+// ЗАВДАННЯ 2: Бінарний пошук та сортування
+// ==========================================
+template <typename T>
+void bubbleSort(T arr[], int size) {
+    for (int i = 0; i < size - 1; ++i) {
+        for (int j = 0; j < size - i - 1; ++j) {
+            if (arr[j] > arr[j + 1]) {
+                T temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+        }
+    }
+}
+
+template <>
+void bubbleSort<char*>(char* arr[], int size) {
+    for (int i = 0; i < size - 1; ++i) {
+        for (int j = 0; j < size - i - 1; ++j) {
+            if (strcmp(arr[j], arr[j + 1]) > 0) {
+                char* temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+        }
+    }
+}
+
+template <typename T>
+int binarySearch(T arr[], int size, T key) {
+    int left = 0, right = size - 1;
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (arr[mid] == key) return mid;
+        if (arr[mid] < key) left = mid + 1;
+        else right = mid - 1;
+    }
+    return -1;
+}
+
+template <>
+int binarySearch<char*>(char* arr[], int size, char* key) {
+    int left = 0, right = size - 1;
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        int cmp = strcmp(arr[mid], key);
+        if (cmp == 0) return mid;
+        if (cmp < 0) left = mid + 1;
+        else right = mid - 1;
+    }
+    return -1;
+}
+
+// ==========================================
+// ЗАВДАННЯ 3: Шаблон класу Матриця
+// ==========================================
+template <typename T>
+class Matrix {
+private:
+    int rows, cols;
+    T** data;
 public:
-    TLong() : hi(0), lo(0) {}
-    TLong(long long h, long long l) : hi(h), lo(l) {}
+    Matrix(int r, int c) : rows(r), cols(c) {
+        data = new T * [rows];
+        for (int i = 0; i < rows; ++i) {
+            data[i] = new T[cols]();
+        }
+    }
 
-    TLong(const TLong& s) : hi(s.hi), lo(s.lo) {}
+    ~Matrix() {
+        for (int i = 0; i < rows; ++i) delete[] data[i];
+        delete[] data;
+    }
 
-    TLong& operator=(const TLong& s) {
-        hi = s.hi;
-        lo = s.lo;
+    // Конструктор копіювання для коректного присвоєння
+    Matrix(const Matrix& other) : rows(other.rows), cols(other.cols) {
+        data = new T * [rows];
+        for (int i = 0; i < rows; ++i) {
+            data[i] = new T[cols];
+            for (int j = 0; j < cols; ++j) data[i][j] = other.data[i][j];
+        }
+    }
+
+    Matrix& operator=(const Matrix& other) {
+        if (this == &other) return *this;
+        for (int i = 0; i < rows; ++i) delete[] data[i];
+        delete[] data;
+
+        rows = other.rows; cols = other.cols;
+        data = new T * [rows];
+        for (int i = 0; i < rows; ++i) {
+            data[i] = new T[cols];
+            for (int j = 0; j < cols; ++j) data[i][j] = other.data[i][j];
+        }
         return *this;
     }
 
-    bool operator>(const TLong& s) const {
-        if (hi > s.hi) return true;
-        if (hi == s.hi && lo > s.lo) return true;
-        return false;
+    T* operator[](int index) { return data[index]; }
+
+    Matrix operator+(const Matrix& other) {
+        Matrix result(rows, cols);
+        for (int i = 0; i < rows; ++i) {
+            for (int j = 0; j < cols; ++j) {
+                result.data[i][j] = this->data[i][j] + other.data[i][j];
+            }
+        }
+        return result;
     }
 
-    bool operator==(const TLong& s) const {
-        return (hi == s.hi && lo == s.lo);
+    void input() {
+        for (int i = 0; i < rows; ++i) {
+            for (int j = 0; j < cols; ++j) {
+                cout << "Елемент [" << i << "][" << j << "]: ";
+                cin >> data[i][j];
+            }
+        }
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const TLong& s) {
-        os << "H" << s.hi << ":L" << s.lo;
-        return os;
+    void print() const {
+        for (int i = 0; i < rows; ++i) {
+            for (int j = 0; j < cols; ++j) {
+                cout << data[i][j] << "\t";
+            }
+            cout << endl;
+        }
     }
 };
 
-// ============================================================================
-// ЗАВДАННЯ 1: Шаблони функцій 1 (Задача 1.2)
-// ============================================================================
-template <typename T>
-T find_max_and_count(const T* arr, int size, int& count) {
-    T max_val = arr[0];
-    count = 1;
-    for (int i = 1; i < size; ++i) {
-        if (arr[i] > max_val) {
-            max_val = arr[i];
-            count = 1;
-        }
-        else if (arr[i] == max_val) {
-            count++;
-        }
-    }
-    return max_val;
-}
-
-template <>
-char* find_max_and_count<char*>(char* const* arr, int size, int& count) {
-    char* max_val = arr[0];
-    count = 1;
-    for (int i = 1; i < size; ++i) {
-        if (strcmp(arr[i], max_val) > 0) {
-            max_val = arr[i];
-            count = 1;
-        }
-        else if (strcmp(arr[i], max_val) == 0) {
-            count++;
-        }
-    }
-    return max_val;
-}
-
-// ============================================================================
-// ЗАВДАННЯ 2: Шаблони функцій 2 (Задача 2.2)
-// ============================================================================
-template <typename T>
-void shell_sort(T* arr, int size) {
-    for (int gap = size / 2; gap > 0; gap /= 2) {
-        for (int i = gap; i < size; ++i) {
-            T temp = arr[i];
-            int j;
-            for (j = i; j >= gap && arr[j - gap] > temp; j -= gap) {
-                arr[j] = arr[j - gap];
-            }
-            arr[j] = temp;
-        }
-    }
-}
-
-template <>
-void shell_sort<char*>(char** arr, int size) {
-    for (int gap = size / 2; gap > 0; gap /= 2) {
-        for (int i = gap; i < size; ++i) {
-            char* temp = arr[i];
-            int j;
-            for (j = i; j >= gap && strcmp(arr[j - gap], temp) > 0; j -= gap) {
-                arr[j] = arr[j - gap];
-            }
-            arr[j] = temp;
-        }
-    }
-}
-
-// ============================================================================
-// ЗАВДАННЯ 3: Шаблони класів (Задача 3.2)
-// ============================================================================
-template <typename T, int SIZE = 50>
-class stack_n {
-    T m_stk[SIZE];
-    int tos;
-public:
-    stack_n() : tos(0) {}
-
-    void push(T obj) {
-        if (tos == SIZE) {
-            std::cout << "Стек повний.\n";
-            return;
-        }
-        m_stk[tos++] = obj;
-    }
-
-    T pop() {
-        if (tos == 0) {
-            std::cout << "Стек порожній.\n";
-            return T();
-        }
-        return m_stk[--tos];
-    }
-
-    bool is_empty() const { return tos == 0; }
-};
-
-// ============================================================================
-// ЗАВДАННЯ 4: Ітератори (Задача 4.2)
-// ============================================================================
+// ==========================================
+// ЗАВДАННЯ 4: Однозв'язний список з Ітератором
+// ==========================================
 template <typename T>
 struct Node {
-    T data;
+    T val;
     Node* next;
-    Node(T val) : data(val), next(nullptr) {}
+    Node(T v) : val(v), next(nullptr) {}
 };
 
 template <typename T>
-class ListIterator {
-    Node<T>* current;
-public:
-    ListIterator(Node<T>* node) : current(node) {}
-
-    T& operator*() { return current->data; }
-
-    ListIterator& operator++() {
-        if (current) current = current->next;
-        return *this;
-    }
-
-    bool operator!=(const ListIterator& other) const {
-        return current != other.current;
-    }
-};
-
-template <typename T>
-class ForwardList {
+class List {
+private:
     Node<T>* head;
 public:
-    ForwardList() : head(nullptr) {}
-    ~ForwardList() {
+    List() : head(nullptr) {}
+    ~List() {
         while (head) {
             Node<T>* temp = head;
             head = head->next;
@@ -178,139 +184,182 @@ public:
         }
     }
 
-    void push_front(T val) {
-        Node<T>* newNode = new Node<T>(val);
-        newNode->next = head;
-        head = newNode;
+    void push_back(T val) {
+        if (!head) {
+            head = new Node<T>(val);
+            return;
+        }
+        Node<T>* temp = head;
+        while (temp->next) temp = temp->next;
+        temp->next = new Node<T>(val);
     }
 
-    ListIterator<T> begin() { return ListIterator<T>(head); }
-    ListIterator<T> end() { return ListIterator<T>(nullptr); }
+    // Вкладений клас-ітератор
+    class Iterator {
+    private:
+        Node<T>* curr;
+    public:
+        Iterator(Node<T>* node) : curr(node) {}
+
+        T& operator*() { return curr->val; }
+
+        Iterator& operator++() {
+            if (curr) curr = curr->next;
+            return *this;
+        }
+
+        bool operator!=(const Iterator& other) const {
+            return curr != other.curr;
+        }
+    };
+
+    Iterator begin() { return Iterator(head); }
+    Iterator end() { return Iterator(nullptr); }
 };
 
-// ============================================================================
-// ГОЛОВНА ТЕСТОВА ПРОГРАМА
-// ============================================================================
+// ==========================================
+// Головна функція з меню користувача
+// ==========================================
 int main() {
-    // НАЛАШТУВАННЯ УКРАЇНСЬКОЇ ЛОКАЛІ ТА КОДУВАННЯ ДЛЯ WINDOWS CONSOLE
-#ifdef _WIN32
-    SetConsoleCP(1251);       // Налаштування кодування введення (Кирилиця Windows)
-    SetConsoleOutputCP(1251); // Налаштування кодування виведення (Кирилиця Windows)
-    setlocale(LC_ALL, "Ukrainian"); // Системна локаль для коректного сортування і виведення
-#else
-    setlocale(LC_ALL, "uk_UA.UTF-8");
-#endif
+    // Встановлення кодування для коректного відображення в консолі
+    std::setlocale(LC_CTYPE, "ukr");
 
-    // Налаштування генератора випадкових чисел
-    std::srand(static_cast<unsigned int>(std::time(0)));
+    int choice;
+    do {
+        cout << "\n=== МЕНЮ ЛАБОРАТОРНОЇ РОБОТИ (Варіант 12) ===\n";
+        cout << "1. Завдання 1: Пошук мінімуму в масиві (Шаблон + Специфікація char*)\n";
+        cout << "2. Завдання 2: Бінарний пошук у масиві (Шаблон + Специфікація char*)\n";
+        cout << "3. Завдання 3: Робота з шаблоном класу Матриця\n";
+        cout << "4. Завдання 4: Однозв'язний список List та Ітератор\n";
+        cout << "0. Вихід\n";
+        cout << "Введіть номер завдання: ";
+        cin >> choice;
 
-    std::cout << "ЛАБОРАТОРНА РОБОТА. ВАРІАНТ 2\n";
-    std::cout << "Виконав: Мельник Євгеній, група 141Б\n\n";
+        switch (choice) {
+        case 1: {
+            int typeChoice, size;
+            cout << "Оберіть тип даних (1 - int, 2 - С-рядок char*): ";
+            cin >> typeChoice;
+            cout << "Введіть розмір масиву: ";
+            cin >> size;
 
-    // ------------------------------------------------------------------------
-    // Тестування Завдання 1 & 2
-    // ------------------------------------------------------------------------
-    std::cout << "=== ЗАВДАННЯ 1 ТА 2: Функції-шаблони ===\n";
-
-    // 1. Датчик випадкових чисел (Тип int)
-    const int rand_size = 8;
-    int rand_arr[rand_size];
-    std::cout << "1. Випадковий масив (int): ";
-    for (int i = 0; i < rand_size; ++i) {
-        rand_arr[i] = std::rand() % 6;
-        std::cout << rand_arr[i] << " ";
-    }
-    int count_int = 0;
-    int max_int = find_max_and_count(rand_arr, rand_size, count_int);
-    std::cout << "\n   Максимум: " << max_int << " (знайдено " << count_int << " раз(ів))\n";
-
-    shell_sort(rand_arr, rand_size);
-    std::cout << "   Після сортування Шелла: ";
-    for (int i = 0; i < rand_size; ++i) std::cout << rand_arr[i] << " ";
-    std::cout << "\n\n";
-
-    // 2. Введення з файлу (Тип double)
-    const char* filename = "input_data.txt";
-    std::ofstream out_f(filename);
-    if (out_f.is_open()) {
-        out_f << "12.4 5.6 19.8 19.8 3.1 14.2";
-        out_f.close();
-    }
-
-    std::ifstream in_f(filename);
-    if (in_f.is_open()) {
-        double file_arr[6];
-        std::cout << "2. Масив з файлу '" << filename << "' (double): ";
-        for (int i = 0; i < 6; ++i) {
-            in_f >> file_arr[i];
-            std::cout << file_arr[i] << " ";
+            if (typeChoice == 1) {
+                int* arr = new int[size];
+                for (int i = 0; i < size; ++i) {
+                    cout << "Елемент [" << i << "]: ";
+                    cin >> arr[i];
+                }
+                cout << "Мінімальний елемент: " << findMin(arr, size) << endl;
+                delete[] arr;
+            }
+            else {
+                char** arr = new char* [size];
+                for (int i = 0; i < size; ++i) {
+                    arr[i] = new char[100];
+                    cout << "Рядок [" << i << "]: ";
+                    cin >> arr[i];
+                }
+                cout << "Мінімальний рядок (лексикографічно): " << findMin(arr, size) << endl;
+                for (int i = 0; i < size; ++i) delete[] arr[i];
+                delete[] arr;
+            }
+            break;
         }
-        in_f.close();
+        case 2: {
+            int typeChoice, size;
+            cout << "Оберіть тип даних (1 - int, 2 - С-рядок char*): ";
+            cin >> typeChoice;
+            cout << "Введіть розмір масиву: ";
+            cin >> size;
 
-        int count_dbl = 0;
-        double max_dbl = find_max_and_count(file_arr, 6, count_dbl);
-        std::cout << "\n   Максимум: " << max_dbl << " (знайдено " << count_dbl << " раз(ів))\n";
+            if (typeChoice == 1) {
+                int* arr = new int[size];
+                for (int i = 0; i < size; ++i) {
+                    cout << "Елемент [" << i << "]: ";
+                    cin >> arr[i];
+                }
+                bubbleSort(arr, size);
+                cout << "Відсортований масив: ";
+                for (int i = 0; i < size; ++i) cout << arr[i] << " ";
+                cout << "\nВведіть ключ для бінарного пошуку: ";
+                int key;
+                cin >> key;
+                int res = binarySearch(arr, size, key);
+                if (res != -1) cout << "Знайдено за індексом: " << res << endl;
+                else cout << "Елемент не знайдено!" << endl;
+                delete[] arr;
+            }
+            else {
+                char** arr = new char* [size];
+                for (int i = 0; i < size; ++i) {
+                    arr[i] = new char[100];
+                    cout << "Рядок [" << i << "]: ";
+                    cin >> arr[i];
+                }
+                bubbleSort(arr, size);
+                cout << "Відсортовані рядки:\n";
+                for (int i = 0; i < size; ++i) cout << arr[i] << "\n";
 
-        shell_sort(file_arr, 6);
-        std::cout << "   Після сортування Шелла: ";
-        for (int i = 0; i < 6; ++i) std::cout << file_arr[i] << " ";
-        std::cout << "\n\n";
-    }
+                char key[100];
+                cout << "Введіть шуканий рядок: ";
+                cin >> key;
+                int res = binarySearch(arr, size, key);
+                if (res != -1) cout << "Знайдено за індексом: " << res << endl;
+                else cout << "Рядок не знайдено!" << endl;
 
-    // 3. Специфікація для типу char*
-    const int words = 4;
-    char* string_arr[words];
-    string_arr[0] = (char*)"Volodymyr";
-    string_arr[1] = (char*)"Yevhenii";
-    string_arr[2] = (char*)"Andrii";
-    string_arr[3] = (char*)"Yevhenii";
+                for (int i = 0; i < size; ++i) delete[] arr[i];
+                delete[] arr;
+            }
+            break;
+        }
+        case 3: {
+            int r, c;
+            cout << "Введіть кількість рядків та стовпців матриць: ";
+            cin >> r >> c;
 
-    std::cout << "3. Масив рядків (char*): ";
-    for (int i = 0; i < words; ++i) std::cout << string_arr[i] << " ";
+            Matrix<int> M1(r, c);
+            Matrix<int> M2(r, c);
 
-    int count_str = 0;
-    char* max_str = find_max_and_count(string_arr, words, count_str);
-    std::cout << "\n   Лексикографічний максимум: " << max_str << " (зустрічається " << count_str << " раз(ів))\n";
+            cout << "Введіть першу матрицю:\n";
+            M1.input();
+            cout << "Введіть другу матрицю:\n";
+            M2.input();
 
-    shell_sort(string_arr, words);
-    std::cout << "   Після сортування Шелла (за алфавітом): ";
-    for (int i = 0; i < words; ++i) std::cout << string_arr[i] << " ";
-    std::cout << "\n\n";
+            cout << "\nМатриця 1:\n"; M1.print();
+            cout << "\nМатриця 2:\n"; M2.print();
 
-    // ------------------------------------------------------------------------
-    // Тестування Завдання 3
-    // ------------------------------------------------------------------------
-    std::cout << "=== ЗАВДАННЯ 3: Параметризований стек (Об'єкти TLong) ===\n";
-    stack_n<TLong, 5> stk;
-    stk.push(TLong(10, 100));
-    stk.push(TLong(45, 900));
-    stk.push(TLong(5, 12));
+            Matrix<int> M3 = M1 + M2;
+            cout << "\nРезультат додавання (M1 + M2):\n";
+            M3.print();
+            break;
+        }
+        case 4: {
+            List<double> myList;
+            int count;
+            cout << "Скільки дійсних чисел додати до списку? ";
+            cin >> count;
 
-    std::cout << "Виштовхуємо елементи зі стеку:\n";
-    while (!stk.is_empty()) {
-        std::cout << "  " << stk.pop() << "\n";
-    }
-    std::cout << "\n";
+            for (int i = 0; i < count; ++i) {
+                double val;
+                cout << "Значення: ";
+                cin >> val;
+                myList.push_back(val);
+            }
 
-    // ------------------------------------------------------------------------
-    // Тестування Завдання 4
-    // ------------------------------------------------------------------------
-    std::cout << "=== ЗАВДАННЯ 4: Однозв'язний список та Ітератор ===\n";
-    ForwardList<int> my_list;
-    my_list.push_front(99);
-    my_list.push_front(88);
-    my_list.push_front(77);
-
-    std::cout << "Елементи списку, знайдені за допомогою ітератора: ";
-    for (ListIterator<int> it = my_list.begin(); it != my_list.end(); ++it) {
-        std::cout << *it << " ";
-    }
-    std::cout << "\n";
-
-    // Надійна затримка консольного вікна Windows
-    std::cout << "\nНатисніть Enter для завершення програми...";
-    std::cin.ignore(32767, '\n');
-    std::cin.get();
+            cout << "Виведення елементів списку за допомогою Ітератора:\n";
+            for (List<double>::Iterator it = myList.begin(); it != myList.end(); ++it) {
+                cout << *it << " -> ";
+            }
+            cout << "NULL\n";
+            break;
+        }
+        case 0:
+            cout << "Програма завершена.\n";
+            break;
+        default:
+            cout << "Невірний вибір! Спробуйте ще раз.\n";
+        }
+    } while (choice != 0);
 
     return 0;
 }
